@@ -15,15 +15,28 @@ def Charset(name):
     name = name.lower()
     for item in Charsets:
         if name.find(item[0]) != -1:
-            return item[1]
+            return item[1];
     return None;
 
+
+# <meta charset="gb2312">
+# <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+
 def FindCharset(content):
-    pattern = re.compile('(?:<meta[\s\S]*?charset[ ="\']*?([\w_-]+?)[ ="\']*?/>)')
-    body = re.findall(pattern, str(content))
+    regs = [
+        '(?:\<meta[\s]*?charset[ ="\']*?([\w_-]+)[ "\'/>]*?)',
+        '(?:\<meta[\s]*?charset[ ="\']*?([\w_-]+)[ "\'\s/>]*?)',
+        '(?:\<meta[\s\S]*charset[ \=\"\']*?([\w_-]+)[ "\'\s]*?)'
+    ]
+    for reg in regs:
+        pattern = re.compile(reg);
+        body = re.findall(pattern, str(content));
+        # print body;
+        if body.__len__() > 0:
+            break;
     if body.__len__() == 0:
         return None;
-    return Charset(body[0])
+    return Charset(body[0]);
 
 def UrlContent(url,options):
     try:
@@ -47,7 +60,6 @@ def UrlContent(url,options):
     if response.status_code != 200:
         return {'status_code':response.status_code,'url':url};
     result = {"status_code":response.status_code,'url':url,'content':response.content};
-    writeBinary(response.content,dataPath("baidu.html"));
     charset = FindCharset(response.content);
     if charset != None:
         result['content'] = response.content.decode(charset);

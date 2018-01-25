@@ -63,3 +63,8 @@ def writeBinary(line,path):
     fd = open(path,'wb')
     fd.write(line)
     fd.close()
+
+def printModule(module):
+    for property in module.__dict__:
+        print property + ':', getattr(module,property);
+    
