@@ -140,10 +140,13 @@ def sharesIDS(page):
         obj = {};
         for i in range( 0,len(fields) ):
             obj[fields[i]] = share[i];
-        sina.insert_one(obj);
+        acknowledged = False
+        if acknowledged != True:
+            acknowledged = sina.insert_one(obj).acknowledged;
     
     count =  ret[0]["count"];
-    if (page * 80 + len(items)) >= count:
+    if ((page-1) * 80 + len(items)) >= count:
+        # print page;
         return count;
     page+=1;
     return sharesIDS(page);
