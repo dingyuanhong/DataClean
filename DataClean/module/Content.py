@@ -38,23 +38,23 @@ def FindCharset(content):
         return None;
     return Charset(body[0]);
 
-def UrlContent(url,options):
+def UrlContent(url,params=None,options=None):
     try:
         header = {"User-Agent":UserAgent()};
         if options == None:
-            response=requests.get(url=url,headers=header);
+            response=requests.get(url=url,headers=header,params=params);
         else :
             option = options;
             if hasattr(option,"header"):
                 option["header"] = dict(option["header"].items + header.items);
             else:
                 option["header"] = header;
-            if  not hasattr(option,'proxy') and not hasattr(option,'timeout') :
-                response=requests.get(url=url,headers=option["header"]);
-            elif not hasattr(option,'proxy'):
-                response=requests.get(url=url,headers=option["header"],timeout = option["timeout"]);
+            if  not hasattr(option,'proxy') and not hasattr(option,'timeout'):
+                response=requests.get(url=url,headers=option["header"],params=params);
+            elif not hasattr(option,'timeout'):
+                response=requests.get(url=url,headers=option["header"],params=params,proxies = option["proxy"]);
             else:
-                response=requests.get(url=url,headers=option["header"],proxies = option["proxy"],timeout = option["timeout"]);
+                response=requests.get(url=url,headers=option["header"],params=params,proxies = option["proxy"],timeout = option["timeout"]);
     except Exception as e:
         return {'status_code':404,'url':url};
     if response.status_code != 200:
@@ -65,7 +65,7 @@ def UrlContent(url,options):
         result['content'] = response.content.decode(charset);
     return result;
 
-def CacheContent(url,file,options):
+def CacheContent(url,file,params=None,options = None):
     result = GetContent(url,options)
     if result['status_code'] == 200 :
         writeBinary(result['content'],file);
