@@ -38,24 +38,26 @@ class MongoDB:
         db_ = self.client.get_database(db,write_concern=write_concern.WriteConcern());
         collection_ = db_.get_collection(collection);
         return collection_;
-    
-    def insert(self,db,collection,data):
-        collection_ = self.getWrite(db,collection);
-        result = collection_.insert_one(data);
+
+class Collection:
+    collection_ = None;
+    def __init__(self,collection):
+        self.collection_ = collection;
+    def insert(self,data):
+        result = self.collection_.insert_one(data);
         if result.acknowledged == True:
             return {"result":True,"id":result.inserted_id};
         else:
             return {"result":False,"id":result.inserted_id};
     
-    def delete(self,db,collection,filter):
-        collection_ = self.getWrite(db,collection);
-        result = collection_.delete_many(filter);
+    def delete(self,filter):
+        result = self.collection_.delete_many(filter);
         if result.deleted_count > 0:
             return {"result":True};
         else:
             return {"result":False};
 
-    def update(self,db,collection,filter,update,option = None):
+    def update(self,filter,update,option = None):
         upsert=False;
         array_filters=None;
         if(option != None):
@@ -63,27 +65,23 @@ class MongoDB:
                 upsert=option["upsert"];
             if option.has_key("array_filters"):
                 array_filters=option["array_filters"];
-        collection_ = self.getWrite(db,collection);
-        result = collection_.update_many(filter,update,upsert = upsert,array_filters = array_filters);
-        if result.deleted_count > 0:
+        result = self.collection_.update_many(filter,update,upsert = upsert,array_filters = array_filters);
+        if result.acknowledged == True:
             return {"result":True};
         else:
             return {"result":False};
 
-    def find(self,db,collection,filter={},option=None):
-        collection_ = self.getRead(db,collection);
-        result = collection_.find(filter);
-        result.count();
+    def find(self,filter={},option=None):
+        result = self.collection_.find(filter);
         ret = [];
         for item in result:
             ret.append(item);
         result.close();
         return ret;
 
-    def findAndModify(self,db,collection,filter,update,option=None):
+    def findAndModify(self,filter,update,option=None):
         return self.update(filter,update,option);
 
-    def count(self,db,collection,filter=''):
-        collection_ = self.getRead(db,collection);
-        result = collection_.count(filter);
+    def count(self,filter=''):
+        result = self.collection_.count(filter);
         return result;
