@@ -47,7 +47,7 @@ def WriteCacheFile(file,content):
         os.remove(file);
 
 def GetCahceFile(md5):
-    return str(cachePath() + str(md5) + ".cache");
+    return str(CACHE(str(md5) + ".cache"));
 
 def GetCacheName(url):
     md5string = hashlib.md5(str(url).encode('utf-8')).hexdigest()

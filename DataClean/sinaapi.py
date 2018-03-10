@@ -1,6 +1,5 @@
 #coding=utf-8
 
-
 import urllib
 import requests
 import re
@@ -54,13 +53,30 @@ class SinaDefault(object):
 
         ret = self.result(ret);
         return ret;
+    def __compile(self,content):
+        try:
+            js = content;
+            parser = execjs.compile(js);
+            ret = parser._eval("a");
+            return ret;
+        # except:
+        #     pass
+        finally:
+            pass;
+        return False;
     def process(self,content):
+        ret = self.__compile(content);
+        if(ret != False):
+            return ret;
         content = str(content).decode("unicode-escape");
+        ret = self.__compile(content);
+        if(ret != False):
+            return ret;
         content = content.encode("unicode-escape").decode("string-escape");
-        js = content;
-        parser = execjs.compile(js);
-        ret = parser._eval("a");
-        return ret;
+        ret = self.__compile(content);
+        if(ret != False):
+            return ret;
+        raise RuntimeError("解析失败");
     def result(self,value):
         other = {};
         for (k,v) in value.items():
@@ -71,8 +87,10 @@ class SinaDefault(object):
         items = value["items"];
         for share in items:
             obj = {};
+            l  = len(share);
             for i in range( 0,len(fields) ):
-                obj[fields[i]] = share[i];
+                if i < l:
+                    obj[fields[i]] = share[i];
             obj.update(other);
             filter = {"code":obj['code']};
             r = self.collection.update(filter,{'$setOnInsert':obj},{'upsert':True});
@@ -90,9 +108,8 @@ class SinaAPI(SinaDefault):
     collection_ = None;
     collection = None;
     pagesize = 80;
-    # def __init__(self,name):
-    #     super(SinaAPI,self).__init__(name);
-    
+    index = 'code';
+    day = 'Add';
     def getParam(self,param,page,pagesize):
         pa = [];
         pa.extend(param);
@@ -117,6 +134,7 @@ class SinaAPI(SinaDefault):
             if ret['code'] != 0:
                 return ret;
             result['count'] += ret['count'];
+            print result;
         return result;
 
     def result(self,value):
@@ -126,18 +144,30 @@ class SinaAPI(SinaDefault):
             if(k not in ['count','fields','items','code']):
                 other[k] = v;
                 pass;
-        if not hasattr(other,'day'):
-            other['day'] =  time.strftime("%Y-%m-%d", time.localtime());
+        if(self.day != None):
+            if not hasattr(other,'day'):
+                other['day'] =  time.strftime("%Y-%m-%d", time.localtime());
+        
         fields = value["fields"];
         items = value["items"];
         for share in items:
             obj = {};
+            l  = len(share);
             for i in range( 0,len(fields) ):
-                obj[fields[i]] = share[i];
+                if i < l:
+                    obj[fields[i]] = share[i];
             obj.update(other);
             # r = self.collection.insert(obj);
-            
-            filter = {"code":obj['code'],'day':obj['day'],'ticktime':obj['ticktime']};
+            if(self.day != None):
+                if hasattr(obj,'ticktime'):
+                    filter = {self.index:obj[self.index],'day':obj['day'],'ticktime':obj['ticktime']};
+                else:
+                    filter = {self.index:obj[self.index],'day':obj['day']};
+            else:
+                if hasattr(obj,'ticktime'):
+                    filter = {self.index:obj[self.index],'ticktime':obj['ticktime']};
+                else:
+                    filter = {self.index:obj[self.index]};
             r = self.collection.update(filter,{'$setOnInsert':obj},{'upsert':True});
             if r == False:
                 raise IOError("update db error");
@@ -161,84 +191,198 @@ class SinaAPI2(SinaAPI):
 
 url = "http://money.finance.sina.com.cn/d/api/openapi_proxy.php/";
 
-#A股
-#__s=[[%22hq%22,%22hs_a%22,%22%22,0,2,40]]&callback=FDC_DC.theTableData
-#__s:[["hq","hs_a","",0,2,40]]
+def lushen():
+    #A股
+    #__s=[[%22hq%22,%22hs_a%22,%22%22,0,2,40]]&callback=FDC_DC.theTableData
+    #__s:[["hq","hs_a","",0,2,40]]
 
-param =  ['"hq"','"hs_a"','""'];
-sina = SinaAPI('a');
-print sina.getAllPage(url,param);
+    param =  ['"hq"','"hs_a"','""'];
+    sina = SinaAPI('a');
+    print sina.getAllPage(url,param);
 
-#中小板
-#__s=[[%22hq%22,%22zxqy%22,%22%22,0,2,40]]&callback=FDC_DC.theTableData
-#__s:[["hq","zxqy","",0,2,40]]
+    #中小板
+    #__s=[[%22hq%22,%22zxqy%22,%22%22,0,2,40]]&callback=FDC_DC.theTableData
+    #__s:[["hq","zxqy","",0,2,40]]
 
-param =  ['"hq"','"zxqy"','""'];
-sina = SinaAPI('zxqy');
-print sina.getAllPage(url,param);
+    param =  ['"hq"','"zxqy"','""'];
+    sina = SinaAPI('zxqy');
+    print sina.getAllPage(url,param);
 
-#创业板
-#__s=[[%22hq%22,%22cyb%22,%22%22,0,2,40]]&callback=FDC_DC.theTableData
-#__s:[["hq","cyb","",0,2,40]]
+    #创业板
+    #__s=[[%22hq%22,%22cyb%22,%22%22,0,2,40]]&callback=FDC_DC.theTableData
+    #__s:[["hq","cyb","",0,2,40]]
 
-param =  ['"hq"','"cyb"','""'];
-sina = SinaAPI('cyb');
-print sina.getAllPage(url,param);
+    param =  ['"hq"','"cyb"','""'];
+    sina = SinaAPI('cyb');
+    print sina.getAllPage(url,param);
 
-#新浪行业板块
-#__s=[[%22bkshy%22,%22%22,0]]&callback=FDC_DC.theTableData
-#__s:[["bkshy","",0]]
+    #新浪行业板块
+    #__s=[[%22bkshy%22,%22%22,0]]&callback=FDC_DC.theTableData
+    #__s:[["bkshy","",0]]
 
-param =  ['"bkshy"','""',0]
-sina = SinaDefault('bkshy');
-param = sina.getDefault(param);
-print sina.getPage(url,param);
+    param =  ['"bkshy"','""',0]
+    sina = SinaDefault('bkshy');
+    param = sina.getDefault(param);
+    print sina.getPage(url,param);
 
-#概念板块
-#__s=[[%22bknode%22,%22gainianbankuai%22,%22%22,0]]&callback=FDC_DC.theTableData
-#__s:[["bknode","gainianbankuai","",0]]
+    #概念板块
+    #__s=[[%22bknode%22,%22gainianbankuai%22,%22%22,0]]&callback=FDC_DC.theTableData
+    #__s:[["bknode","gainianbankuai","",0]]
 
-param =  ['"bknode"','"gainianbankuai"','""',0];
-sina = SinaDefault('gainianbankuai');
-param = sina.getDefault(param);
-print sina.getPage(url,param);
+    param =  ['"bknode"','"gainianbankuai"','""',0];
+    sina = SinaDefault('gainianbankuai');
+    param = sina.getDefault(param);
+    print sina.getPage(url,param);
 
-#地域板块
-#__s=[[%22bknode%22,%22diyu%22,%22%22,0]]&callback=FDC_DC.theTableData
-#__s:[["bknode","diyu","",0]]
+    #地域板块
+    #__s=[[%22bknode%22,%22diyu%22,%22%22,0]]&callback=FDC_DC.theTableData
+    #__s:[["bknode","diyu","",0]]
 
-param =  ['"bknode"','"diyu"','""',0];
-sina = SinaDefault('diyu');
-param = sina.getDefault(param);
-print sina.getPage(url,param);
+    param =  ['"bknode"','"diyu"','""',0];
+    sina = SinaDefault('diyu');
+    param = sina.getDefault(param);
+    print sina.getPage(url,param);
 
-#指数
-#__s=[[%22hq%22,%22dpzs%22,%22%22,0,1,40]]&callback=FDC_DC.theTableData
-#__s:[["hq","dpzs","",0,1,40]]
+    #指数
+    #__s=[[%22hq%22,%22dpzs%22,%22%22,0,1,40]]&callback=FDC_DC.theTableData
+    #__s:[["hq","dpzs","",0,1,40]]
 
-param =  ['"hq"','"dpzs"','""'];
-sina = SinaAPI('dpzs');
-print sina.getAllPage(url,param);
+    param =  ['"hq"','"dpzs"','""'];
+    sina = SinaAPI('dpzs');
+    print sina.getAllPage(url,param);
 
-#上证指数
-#__s:[["jjhq",1,40,"",0,"zhishu_000001"]]
+    #上证指数
+    #__s:[["jjhq",1,40,"",0,"zhishu_000001"]]
 
-param =  ['"jjhq"','""',0,'"zhishu_000001"'];
-sina = SinaAPI2('jjhq');
-print sina.getAllPage(url,param);
+    param =  ['"jjhq"','""',0,'"zhishu_000001"'];
+    sina = SinaAPI2('jjhq');
+    print sina.getAllPage(url,param);
 
-#深证指数
-#__s=[[%22jjhq%22,1,40,%22%22,0,%22zhishu_399001%22]]&callback=FDC_DC.theTableData
-#__s:[["jjhq",1,40,"",0,"zhishu_399001"]]
+    #深证指数
+    #__s=[[%22jjhq%22,1,40,%22%22,0,%22zhishu_399001%22]]&callback=FDC_DC.theTableData
+    #__s:[["jjhq",1,40,"",0,"zhishu_399001"]]
 
-param =  ['"jjhq"','""',0,'"zhishu_399001"'];
-sina = SinaAPI2('zhishu_399001');
-print sina.getAllPage(url,param);
+    param =  ['"jjhq"','""',0,'"zhishu_399001"'];
+    sina = SinaAPI2('zhishu_399001');
+    print sina.getAllPage(url,param);
 
-#泸深指数
-#__s=[[%22jjhq%22,1,40,%22%22,0,%22hs300%22]]&callback=FDC_DC.theTableData
-#__s:[["jjhq",1,40,"",0,"hs300"]]
+    #泸深指数
+    #__s=[[%22jjhq%22,1,40,%22%22,0,%22hs300%22]]&callback=FDC_DC.theTableData
+    #__s:[["jjhq",1,40,"",0,"hs300"]]
 
-param =  ['"jjhq"','""',0,'"hs300"'];
-sina = SinaAPI2('hs300');
-print sina.getAllPage(url,param);
+    param =  ['"jjhq"','""',0,'"hs300"'];
+    sina = SinaAPI2('hs300');
+    print sina.getAllPage(url,param);
+
+
+
+def lugang():
+    #泸港通
+    #__s:[["hgtnode","hgt_hk","",0,2,40]]
+    param =  ['"hgtnode"','"hgt_hk"','""'];
+    sina = SinaAPI('hgt_hk');
+    sina.day = None;
+    sina.index = 'symbol';
+    print sina.getAllPage(url,param);
+
+    #泸股通
+    #__s:[["bkshy_node","hgt_sh","",0,1,40]]
+    param =  ['"bkshy_node"','"hgt_sh"','""'];
+    sina = SinaAPI('hgt_sh');
+    sina.index = 'symbol';
+    print sina.getAllPage(url,param);
+
+def honkon():
+    #全部港股
+    #__s:[["hk","qbgg_hk","",0,1,40]]
+    param =  ['"hk"','"qbgg_hk"','""'];
+    sina = SinaAPI('qbgg_hk');
+    sina.day = None;
+    sina.index = 'symbol';
+    print sina.getAllPage(url,param);
+    
+    #蓝筹股
+    #__s:[["hk","lcg_hk","",0,1,40]]
+    param =  ['"hk"','"lcg_hk"','""'];
+    sina = SinaAPI('lcg_hk');
+    sina.day = None;
+    sina.index = 'symbol';
+    print sina.getAllPage(url,param);
+
+    #红筹股
+    #__s:[["hk","hcg_hk","",0,1,40]]
+    param =  ['"hk"','"hcg_hk"','""'];
+    sina = SinaAPI('hcg_hk');
+    sina.day = None;
+    sina.index = 'symbol';
+    print sina.getAllPage(url,param);
+
+    #国企股
+    #__s:[["hk","gqg_hk","",0,1,40]]
+    param =  ['"hk"','"gqg_hk"','""'];
+    sina = SinaAPI('gqg_hk');
+    sina.day = None;
+    sina.index = 'symbol';
+    print sina.getAllPage(url,param);
+
+    #创业板
+    #__s:[["hk","cyb_hk","",0,1,40]]
+    param =  ['"hk"','"cyb_hk"','""'];
+    sina = SinaAPI('cyb_hk');
+    sina.day = None;
+    sina.index = 'symbol';
+    print sina.getAllPage(url,param);
+
+    #指数
+    # __s:[["hk","zs_hk","",0,1,40]]
+    param =  ['"hk"','"zs_hk"','""'];
+    sina = SinaAPI('zs_hk');
+    sina.day = None;
+    sina.index = 'symbol';
+    print sina.getAllPage(url,param);
+
+def mei():
+    #美股
+    #__s:[["us_c",0,"","",0,1,40]]
+    param =  ['"us_c"', 0,'""','""'];
+    sina = SinaAPI('us_c');
+    sina.day = None;
+    sina.index = 'symbol';
+    print sina.getAllPage(url,param);
+
+    #知名美股
+
+    #中国概念股
+    #__s:[["us_z",0,"","",0,1,40]]
+    param =  ['"us_z"', 0,'""','""'];
+    sina = SinaAPI('us_z');
+    sina.day = None;
+    sina.index = 'symbol';
+    print sina.getAllPage(url,param);
+
+    #道琼斯
+    #__s:[["us_cf",3,"","",0,1,40]]
+    param =  ['"us_cf"', 3,'""','""'];
+    sina = SinaAPI('us_cf_3');
+    sina.day = None;
+    sina.index = 'symbol';
+    print sina.getAllPage(url,param);
+
+    #纳斯达克
+    #__s:[["us_cf",1,"","",0,1,40]]
+    param =  ['"us_cf"', 1,'""','""'];
+    sina = SinaAPI('us_cf_1');
+    sina.day = None;
+    sina.index = 'symbol';
+    print sina.getAllPage(url,param);
+
+    #标普500
+    #__s:[["us_cf",2,"","",0,1,40]]
+    param =  ['"us_cf"', 2,'""','""'];
+    sina = SinaAPI('us_cf_2');
+    sina.day = None;
+    sina.index = 'symbol';
+    print sina.getAllPage(url,param);
+
+lushen();
+# mei();

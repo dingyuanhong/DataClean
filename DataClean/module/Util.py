@@ -1,45 +1,42 @@
 import os
 import hashlib
 
-def isAString(obj):
+def isbasestring(obj):
     return isinstance(obj,basestring)
 
 ROOT_PATH='.';
 
-def setRootPath(path =None):
+def setROOT(path =None):
     if path == None:
         return;
     ROOT_PATH = path;
 
-def rootPath():
+def ROOT():
     return ROOT_PATH;
 
-def tempPath(file = None):
-    path = rootPath() + '/temp/'
-    if isAString(file):
+def __makedir(path):
+    dirname, basename = os.path.split(path)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+    return path
+
+def TEMP(file = None):
+    path = ROOT() + '/temp/'
+    if isbasestring(file):
         path = path + file
+    return __makedir(path);
 
-    dirname, basename = os.path.split(path)
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
-    return path
-
-def dataPath(file = None):
-    path = rootPath() + '/data/'
-    if isAString(file):
+def DATA(file = None):
+    path = ROOT() + '/data/'
+    if isbasestring(file):
         path = path + file
+    return __makedir(path);
 
-    dirname, basename = os.path.split(path)
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
-    return path
-
-def cachePath():
-    path= rootPath() + "/cache/"
-    dirname, basename = os.path.split(path)
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
-    return path
+def CACHE(file = None):
+    path= ROOT() + "/cache/"
+    if isbasestring(file):
+        path = path + file
+    return __makedir(path);
 
 def FileMd5(filename):
     if not os.path.isfile(filename):
